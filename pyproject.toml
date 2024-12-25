@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "guided-conversations"
+version = "0.1.0"
+description = "A framework for building multi-phase, AI-guided conversations powered by OpenAI's Realtime API"
+requires-python = ">=3.8"
+dependencies = [
+    "openai",
+    "fastapi",
+    "websockets",
+    "pydantic",
+    "numpy",
+    "librosa",
+    "python-dotenv",
+    "pyaudio",
+    "sounddevice",
+]
+
+[tool.setuptools]
+packages = ["guided_conversations"]
+package-dir = {guided_conversations = "guided_conversations"} 
