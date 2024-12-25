@@ -8,6 +8,8 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 import sounddevice as sd
+import os
+import websockets
 
 from src.core.realtime.session import RealtimeSession
 from src.core.utils.errors import handle_realtime_error
@@ -42,22 +44,29 @@ async def handle_responses(session: RealtimeSession):
     """
     audio_player = AudioPlayer()
     
-    try:
-        while True:
-            if session.ws:
-                response = await session.ws.recv()
-                if isinstance(response, str):
-                    try:
-                        data = json.loads(response)
-                        await session.event_handler.handle_event(data)
-                    except json.JSONDecodeError:
-                        print(f"[error] Failed to parse response: {response}")
-                else:
-                    # Handle binary audio data
-                    audio_player.play_chunk(response)
-            await asyncio.sleep(0.01)
-    except Exception as e:
-        print(f"[error] Response handler error: {e}")
+    retry_count = 0
+    max_retries = 3
+    
+    while retry_count < max_retries:
+        try:
+            while True:
+                if session.ws:
+                    response = await session.ws.recv()
+                    if isinstance(response, str):
+                        try:
+                            data = json.loads(response)
+                            await session.event_handler.handle_event(data)
+                        except json.JSONDecodeError:
+                            print(f"[error] Failed to parse response: {response}")
+                    else:
+                        # Handle binary audio data
+                        audio_player.play_chunk(response)
+                await asyncio.sleep(0.01)
+        except websockets.exceptions.ConnectionClosed:
+            retry_count += 1
+            print(f"[warn] Connection closed, attempt {retry_count}/{max_retries}")
+            await asyncio.sleep(1)
+            continue
 
 
 async def run_conversation(config_name: str):
@@ -66,6 +75,13 @@ async def run_conversation(config_name: str):
     """
     # Load environment variables
     load_dotenv()
+    
+    # Debug: Print API key (last 4 chars only for security)
+    api_key = os.getenv("OPENAI_API_KEY", "")
+    if api_key:
+        print(f"API Key loaded (last 4 chars): ...{api_key[-4:]}")
+    else:
+        print("Warning: No API key found in environment variables")
     
     # Get the requested configuration
     config = CONVERSATION_CONFIGS.get(config_name)
@@ -118,7 +134,7 @@ async def run_conversation(config_name: str):
             
             # 3. Send the processed audio chunk
             if processed_chunk and session.ws:
-                await session.ws.send_bytes(processed_chunk)
+                await session.ws.send(processed_chunk)
 
             await asyncio.sleep(0.01)
 

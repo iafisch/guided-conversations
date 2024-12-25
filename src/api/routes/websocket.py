@@ -1,7 +1,7 @@
 from fastapi import WebSocket, WebSocketDisconnect, HTTPException
 import json
 from typing import Optional
-from .sessions import get_session
+from src.api.routes.session_manager import get_session
 
 async def realtime_endpoint(websocket: WebSocket, session_id: str):
     """

@@ -12,22 +12,30 @@ basic_config = ConversationConfig(
             instructions="Welcome the user and introduce yourself",
             success_criteria=["user_greeted"],
             required_observations=["user_response"],
-            next_phases=["main_conversation"]
+            next_phases=["main_conversation"],
+            max_duration_seconds=120,
+            completion_rules={}
         ),
         "main_conversation": ConversationPhase(
             name="Main Conversation",
             instructions="Engage in conversation, ask about their needs",
             success_criteria=["needs_identified"],
             required_observations=["user_needs"],
-            next_phases=["conclusion"]
+            next_phases=["conclusion"],
+            max_duration_seconds=300,
+            completion_rules={}
         ),
         "conclusion": ConversationPhase(
             name="Conclusion",
             instructions="Wrap up the conversation politely",
             success_criteria=["farewell_given"],
             required_observations=["user_farewell"],
-            next_phases=[]
+            next_phases=[],
+            max_duration_seconds=120,
+            completion_rules={}
         )
     },
-    voice="alloy"
+    voice="alloy",
+    max_duration_seconds=600,
+    completion_criteria={}
 ) 
