@@ -4,27 +4,44 @@ import asyncio
 import argparse
 import pyaudio
 import json
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
+import sounddevice as sd
 
 from src.core.realtime.session import RealtimeSession
+from src.core.utils.errors import handle_realtime_error
 from examples.language_assessment import language_assessment_config
 from examples.restaurant_ordering import restaurant_ordering_config
 from examples.financial_advisor import financial_advisor_config
+from src.core.realtime.audio_playback import AudioPlayer
+from examples.basic_conversation import basic_config
 
 
 # Map of available conversation configs
 CONVERSATION_CONFIGS = {
     "language": language_assessment_config,
     "restaurant": restaurant_ordering_config,
-    "financial": financial_advisor_config
+    "financial": financial_advisor_config,
+    "basic": basic_config
 }
 
 
 async def handle_responses(session: RealtimeSession):
     """
-    Handle incoming responses from the AI in a background task
+    Handle incoming responses from the AI in a background task.
+    
+    This function:
+    - Receives WebSocket messages continuously
+    - Processes text events through the event handler
+    - Handles binary audio data for playback
+    - Manages errors and connection issues
+    
+    Args:
+        session: Active RealtimeSession instance
     """
+    audio_player = AudioPlayer()
+    
     try:
         while True:
             if session.ws:
@@ -37,8 +54,7 @@ async def handle_responses(session: RealtimeSession):
                         print(f"[error] Failed to parse response: {response}")
                 else:
                     # Handle binary audio data
-                    # You might want to play this through speakers
-                    pass
+                    audio_player.play_chunk(response)
             await asyncio.sleep(0.01)
     except Exception as e:
         print(f"[error] Response handler error: {e}")

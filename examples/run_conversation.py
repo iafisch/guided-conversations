@@ -2,6 +2,7 @@ import asyncio
 import os
 from dotenv import load_dotenv
 from src.core.realtime.session import RealtimeSession
+from src.core.config.models import ConversationConfig, ConversationPhase
 from examples.basic_conversation import basic_config
 import pyaudio
 import json
@@ -12,10 +13,14 @@ async def handle_responses(session):
         try:
             if session.ws:
                 message = await session.ws.recv()
-                await session.event_handler.handle_event(json.loads(message))
-        except json.JSONDecodeError:
-            # Binary audio data, handle if needed
-            pass
+                if isinstance(message, str):
+                    # Handle JSON messages (events)
+                    event = json.loads(message)
+                    await session.event_handler.handle_event(event)
+                else:
+                    # Handle binary audio data
+                    # The API sends audio as binary PCM16 data
+                    await session.audio_processor.process_output_chunk(message)
         except Exception as e:
             print(f"Error handling response: {e}")
             break

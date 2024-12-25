@@ -6,19 +6,73 @@ build-backend = "setuptools.build_meta"
 name = "guided-conversations"
 version = "0.1.0"
 description = "A framework for building multi-phase, AI-guided conversations powered by OpenAI's Realtime API"
-requires-python = ">=3.8"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+    { name = "Your Name", email = "your.email@example.com" }
+]
 dependencies = [
-    "openai",
-    "fastapi",
-    "websockets",
-    "pydantic",
-    "numpy",
-    "librosa",
-    "python-dotenv",
-    "pyaudio",
-    "sounddevice",
+    "openai>=1.0.0",
+    "fastapi>=0.104.0",
+    "websockets>=11.0.3",
+    "pydantic>=2.4.2",
+    "numpy>=1.24.0",
+    "librosa>=0.10.1",
+    "python-dotenv>=1.0.0",
+    "pyaudio>=0.2.13",
+    "sounddevice>=0.4.6",
+    "uvicorn>=0.23.2",
+    "python-multipart>=0.0.6",
+    "typing-extensions>=4.8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.1",
+    "pytest-cov>=4.1.0",
+    "black>=23.9.1",
+    "isort>=5.12.0",
+    "mypy>=1.5.1",
+    "ruff>=0.0.291",
 ]
 
 [tool.setuptools]
 packages = ["guided_conversations"]
-package-dir = {guided_conversations = "guided_conversations"} 
+package-dir = { guided_conversations = "src" }
+
+[tool.black]
+line-length = 88
+target-version = ["py39"]
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --cov=src --cov-report=term-missing"
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "C",  # flake8-comprehensions
+    "B",  # flake8-bugbear
+] 

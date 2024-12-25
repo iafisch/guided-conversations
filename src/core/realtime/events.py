@@ -1,40 +1,35 @@
-from typing import Dict
+from typing import Dict, Optional
 import json
+from datetime import datetime
+from ..utils.errors import handle_realtime_error
 
 class RealtimeEventHandler:
-    """
-    Handles all Realtime API events, dispatching to specific handler methods 
-    based on the event's type field.
-    """
-
-    def __init__(self, session):
-        """
-        session: An instance of RealtimeSession.
-        """
-        self.session = session
-
+    """Handles all Realtime API events"""
+    
     async def handle_event(self, event: Dict):
         event_type = event.get("type", "")
         
-        # Map of event_type -> handler function
         handlers = {
             # Text events
-            "text.delta": self._handle_text_delta,
-            "text.done": self._handle_text_done,
+            "response.text.delta": self._handle_text_delta,
+            "response.text.done": self._handle_text_done,
             
             # Audio events
-            "audio.delta": self._handle_audio_delta,
-            "audio.done": self._handle_audio_done,
+            "response.audio.delta": self._handle_audio_delta,
+            "response.audio.done": self._handle_audio_done,
+            
+            # Audio transcript events
+            "response.audio_transcript.delta": self._handle_audio_transcript_delta,
+            "response.audio_transcript.done": self._handle_audio_transcript_done,
             
             # Function call events
-            "function.call": self._handle_function_call,
-            "function.done": self._handle_function_call_done,
+            "response.function_call_arguments.delta": self._handle_function_call_delta,
+            "response.function_call_arguments.done": self._handle_function_call_done,
             
-            # Speech events
-            "speech.started": self._handle_speech_started,
-            "speech.stopped": self._handle_speech_stopped
+            # Rate limit events
+            "rate_limits.updated": self._handle_rate_limits_updated
         }
-
+        
         handler = handlers.get(event_type)
         if handler:
             await handler(event)
