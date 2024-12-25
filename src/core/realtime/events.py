@@ -14,46 +14,30 @@ class RealtimeEventHandler:
         self.session = session
 
     async def handle_event(self, event: Dict):
-        event_type = event.get("type")
+        event_type = event.get("type", "")
         
         # Map of event_type -> handler function
         handlers = {
-            # Session events
-            "session.created": self._handle_session_created,
-            "session.updated": self._handle_session_updated,
-
-            # Conversation events
-            "conversation.created": self._handle_conversation_created,
-            "conversation.item.created": self._handle_item_created,
-
-            # Response events
-            "response.created": self._handle_response_created,
-            "response.done": self._handle_response_done,
-
-            # Content events
-            "response.text.delta": self._handle_text_delta,
-            "response.audio.delta": self._handle_audio_delta,
-
-            # Function calling events
-            "response.function_call_arguments.delta": self._handle_function_call_delta,
-            "response.function_call_arguments.done": self._handle_function_call_done,
-
-            # Audio buffer events
-            "input_audio_buffer.speech_started": self._handle_speech_started,
-            "input_audio_buffer.speech_stopped": self._handle_speech_stopped,
-
-            # Add missing handlers from docs
-            "response.audio_transcript.delta": self._handle_audio_transcript_delta,
-            "response.audio_transcript.done": self._handle_audio_transcript_done,
-            "rate_limits.updated": self._handle_rate_limits_updated,
+            # Text events
+            "text.delta": self._handle_text_delta,
+            "text.done": self._handle_text_done,
+            
+            # Audio events
+            "audio.delta": self._handle_audio_delta,
+            "audio.done": self._handle_audio_done,
+            
+            # Function call events
+            "function.call": self._handle_function_call,
+            "function.done": self._handle_function_call_done,
+            
+            # Speech events
+            "speech.started": self._handle_speech_started,
+            "speech.stopped": self._handle_speech_stopped
         }
 
         handler = handlers.get(event_type)
-        if handler is not None:
+        if handler:
             await handler(event)
-        else:
-            # Optionally handle unknown events
-            pass
 
     async def _handle_session_created(self, event: Dict):
         """

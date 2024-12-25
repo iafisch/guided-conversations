@@ -10,8 +10,11 @@ class RealtimeAudioProcessor:
     FORMAT = "pcm16"     # Must be PCM16
     
     def __init__(self):
-        self.sample_rate = 24000  # Required by the OpenAI Realtime API
-        self.chunk_size = int(self.sample_rate * 0.1)  # 100ms audio chunks
+        self.sample_rate = 24000
+        self.format = "int16"  # PCM16
+        self.channels = 1      # Mono required
+        self.chunk_duration = 0.1  # 100ms chunks
+        self.chunk_samples = int(self.sample_rate * self.chunk_duration)
 
     async def process_chunk(self, chunk: bytes) -> Optional[str]:
         """
