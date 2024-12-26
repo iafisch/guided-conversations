@@ -13,7 +13,7 @@ def on_open(ws):
     event = {
         "type": "session.update",
         "session": {
-            "modalities": ["audio", "text"],
+            "modalities": ["text"],
             "instructions": "You are a helpful AI assistant. Please respond to the user's voice input.",
             "input_audio_format": "pcm16",
             "output_audio_format": "pcm16",
@@ -28,12 +28,11 @@ def on_open(ws):
     }
     ws.send(json.dumps(event))
     print("[Config] Sent initial configuration")
-
     # Create response first
     response_event = {
         "type": "response.create",
         "response": {
-            "modalities": ["text", "audio"]
+            "modalities": ["text"]
         }
     }
     ws.send(json.dumps(response_event))
@@ -49,24 +48,53 @@ def on_message(ws, message):
     try:
         if isinstance(message, str):
             data = json.loads(message)
-            
-            # Handle different message types
-            if data.get("type") == "content":
-                text = data.get("content", {}).get("text") or data.get("text", "")
-                print(f"\n[Assistant]: {text}")
-            elif data.get("type") == "content.partial":
-                text = data.get("content", {}).get("text") or data.get("text", "")
-                print(f"\n[Assistant partial]: {text}", end="\r")
-            elif data.get("type") == "transcript":
-                print("\n[You]:", data.get("text", ""))
-            elif data.get("type") == "error":
-                print("\n[Error]:", data.get("error", {}).get("message", "Unknown error"))
-            elif data.get("type") == "session.update":
-                pass
+
+            # Extract the event type
+            event_type = data.get("type")
+
+            # Handle session events
+            if event_type in ["session.created", "session.updated"]:
+                session_id = data.get("session", {}).get("id", "Unknown")
+                print(f"[Session] {event_type.replace('session.', '').capitalize()}: ID {session_id}")
+
+            # Handle rate limit updates
+            elif event_type == "rate_limits.updated":
+                limits = data.get("rate_limits", [])
+                for limit in limits:
+                    print(f"[Rate Limit] {limit['name'].capitalize()}: {limit['remaining']}/{limit['limit']} (resets in {limit['reset_seconds']} seconds)")
+
+            # Handle assistant responses (text-based)
+            elif event_type in ["response.text.delta", "response.text.done"]:
+                text = data.get("delta") or data.get("text", "")
+                if event_type == "response.text.delta":
+                    print(f"[Assistant] {text}", end="", flush=True)  # Streamed delta text
+                else:
+                    print(f"\n[Assistant Final]: {text}")  # Finalized text
+
+            # Handle response completions
+            elif event_type == "response.done":
+                status = data.get("response", {}).get("status", "unknown")
+                print(f"\n[Response] Completed with status: {status}")
+
+            # Handle user transcript input (if applicable)
+            elif event_type == "conversation.item.created":
+                role = data.get("item", {}).get("role", "unknown")
+                content = data.get("item", {}).get("content", [])
+                if role == "user":
+                    transcript = next((c.get("transcript") for c in content if c.get("type") == "input_audio"), None)
+                    if transcript:
+                        print(f"\n[User Transcript]: {transcript}")
+
+            # Handle errors
+            elif event_type == "error":
+                error_message = data.get("error", {}).get("message", "Unknown error")
+                print(f"\n[Error]: {error_message}")
+
+            # Debug unknown events
             else:
-                # Debug unknown events
-                print(f"\n[Debug]: {data.get('type')}")
-                
+                print(f"\n[Debug] Unknown Event: {event_type}")
+                print(json.dumps(data, indent=2))
+
     except Exception as e:
         print(f"\n[Error] Message handling error: {e}")
 
@@ -110,8 +138,12 @@ def capture_audio(ws):
         print("[Audio] Stopped recording")
 
 def main():
-    load_dotenv()
+    # Force reload of environment variables
+    load_dotenv(override=True)
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    
+    if not OPENAI_API_KEY:
+        raise ValueError("OPENAI_API_KEY not found in environment variables")
     
     # Connection URL with model parameter
     url = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17"
