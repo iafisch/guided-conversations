@@ -71,24 +71,55 @@ def on_message(ws, message):
                 else:
                     print(f"\n[Assistant Final]: {text}")  # Finalized text
 
+            # Handle content parts (multi-modal responses)
+            elif event_type in ["response.content_part.added", "response.content_part.done"]:
+                content = data.get("part", {}).get("text", "")
+                print(f"\n[Content Part]: {content}")
+
+            # Handle output item additions and completions
+            elif event_type in ["response.output_item.added", "response.output_item.done"]:
+                item_id = data.get("item", {}).get("id", "Unknown")
+                status = data.get("item", {}).get("status", "unknown")
+                print(f"[Output Item] {event_type.replace('response.output_item.', '').capitalize()}: Item ID {item_id}, Status: {status}")
+
+            # Handle response creation
+            elif event_type == "response.created":
+                response_id = data.get("response", {}).get("id", "Unknown")
+                status = data.get("response", {}).get("status", "unknown")
+                print(f"[Response Created] ID: {response_id}, Status: {status}")
+
             # Handle response completions
             elif event_type == "response.done":
+                response_id = data.get("response", {}).get("id", "Unknown")
                 status = data.get("response", {}).get("status", "unknown")
-                print(f"\n[Response] Completed with status: {status}")
+                print(f"[Response Done] ID: {response_id}, Status: {status}")
 
-            # Handle user transcript input (if applicable)
+            # Handle user-provided transcripts
             elif event_type == "conversation.item.created":
                 role = data.get("item", {}).get("role", "unknown")
                 content = data.get("item", {}).get("content", [])
                 if role == "user":
                     transcript = next((c.get("transcript") for c in content if c.get("type") == "input_audio"), None)
                     if transcript:
-                        print(f"\n[User Transcript]: {transcript}")
+                        print(f"[User Transcript]: {transcript}")
+                else:
+                    print(f"[Conversation Item] Created by {role}")
+
+            # Handle input audio buffer events
+            elif event_type in ["input_audio_buffer.speech_started", "input_audio_buffer.speech_stopped", "input_audio_buffer.committed"]:
+                print(f"[Audio Buffer] {event_type.replace('input_audio_buffer.', '').replace('_', ' ').capitalize()}")
+
+            # Handle response rate limits
+            elif event_type == "rate_limits.updated":
+                limits = data.get("rate_limits", [])
+                for limit in limits:
+                    print(f"[Rate Limits] {limit['name']}: {limit['remaining']}/{limit['limit']} (reset in {limit['reset_seconds']}s)")
 
             # Handle errors
             elif event_type == "error":
                 error_message = data.get("error", {}).get("message", "Unknown error")
-                print(f"\n[Error]: {error_message}")
+                error_code = data.get("error", {}).get("code", "Unknown code")
+                print(f"[Error] Code: {error_code}, Message: {error_message}")
 
             # Debug unknown events
             else:
@@ -96,7 +127,7 @@ def on_message(ws, message):
                 print(json.dumps(data, indent=2))
 
     except Exception as e:
-        print(f"\n[Error] Message handling error: {e}")
+        print(f"[Error] Message handling error: {e}")
 
 def on_error(ws, error):
     print("\n[Error]", str(error))
